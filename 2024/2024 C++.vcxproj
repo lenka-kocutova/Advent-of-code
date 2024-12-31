@@ -128,12 +128,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AoC2024.cpp" />
     <ClCompile Include="Day1.cpp" />
+    <ClCompile Include="Day2.cpp" />
+    <ClCompile Include="Day3.cpp" />
+    <ClCompile Include="Day4.cpp" />
+    <ClCompile Include="Day5.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Day1.txt" />
+    <Text Include="Day2.txt" />
+    <Text Include="Day3.txt" />
+    <Text Include="Day4.txt" />
+    <Text Include="Day5.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AoC2024.h" />
     <ClInclude Include="Reusable.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

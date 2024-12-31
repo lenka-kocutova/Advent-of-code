@@ -18,6 +18,7 @@ Multiply it's value with the number of times it appears in the right list
 */
 
 #include "Reusable.h"
+#include "AoC2024.h"
 
 #include <fstream>
 #include <string>
@@ -28,7 +29,7 @@ Multiply it's value with the number of times it appears in the right list
 #include <print>
 #include <tuple>
 
-int main()
+void Day1()
 {
 	std::ifstream file("Day1.txt");
     std::string line;
