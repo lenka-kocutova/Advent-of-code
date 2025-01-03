@@ -7,17 +7,28 @@
 #include <ranges>
 #include <vector>
 #include <algorithm>
-#include <print>
-#include <tuple>
 #include <map>
 #include <set>
-#include <optional>
-#include <iostream>
 #include <numeric>
-#include <exception>
-#include <array>
+#include <print>
 
 
+bool ArePagesOrdered(const std::vector<unsigned int>& order, const std::map<unsigned int, std::set<unsigned int>>& mapRules)
+{
+    for (auto itPage = order.begin(); itPage != order.end(); ++itPage)
+    {
+        unsigned int page = *itPage;
+        const auto& currentPageSuccessors = mapRules.at(page);
+        for (auto itSuccessingPage = std::next(itPage); itSuccessingPage != order.end(); ++itSuccessingPage)
+        {
+            if (currentPageSuccessors.find(*itSuccessingPage) == currentPageSuccessors.end())
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
 
 void Day5()
 {
@@ -29,14 +40,8 @@ void Day5()
         bool isRules = true;
         while (std::getline(file, line))
         {
-            if (isRules)
-            {
-                rules.emplace_back(line);
-            }
-            else
-            {
-                orders.emplace_back(line);
-            }
+            auto& current = isRules ? rules : orders;
+            current.emplace_back(line);
             if (line.empty())
             {
                 isRules = false;
@@ -45,123 +50,57 @@ void Day5()
     }
 
     // Set rules
-    for (std::string rule : rules)
+    for (const std::string& rule : rules)
     {
         auto pairs = rule | std::views::split('|') | std::views::adjacent<2>;
-        for (auto pair : pairs)
+        for (auto [predecessor, successor] : pairs)
         {
-            auto val = std::get<0>(pair);
-            std::string result1(val.begin(), val.end());
-            unsigned int result3 = std::stoul(result1);
-            auto dep = std::get<1>(pair);
-            std::string result2(dep.begin(), dep.end());
-            unsigned int result4 = std::stoul(result2);
-            mapRules[result3].emplace(result4);
+            unsigned int predecessorPage = std::stoul(std::string(predecessor.begin(), predecessor.end()));
+            unsigned int successorPage = std::stoul(std::string(successor.begin(), successor.end()));
+            mapRules[predecessorPage].emplace(successorPage);
         }
     }
 
+    // Define orders of pages
     std::vector<std::vector<unsigned int>> orderList;
     for (const auto& order : orders)
     {
         auto& currentOrder = orderList.emplace_back();
         auto orderPages = order | std::views::split(',');
-        for (auto orderPage : orderPages)
-        {
-            std::string result(orderPage.begin(), orderPage.end());
-            unsigned int page = std::stoul(result);
-            currentOrder.emplace_back(page);
-        }
+        std::ranges::transform(orderPages, std::back_inserter(currentOrder), [](auto orderPage) {return std::stoul(std::string(orderPage.begin(), orderPage.end())); });
     }
 
     // Part 1 - Sum up the middle values from correct orders
-    unsigned long long sumCorrect = 0;
-    for (const auto& order : orderList)
+    auto orderedList = orderList | std::views::filter([&mapRules](const std::vector<unsigned int>& order)
     {
-        bool currentOk = true;
-        for (auto itPage = order.begin(); itPage != order.end(); ++itPage)
-        {
-            const auto& currentPageSuccessors = mapRules[*itPage];
-            for (auto itSuccessingPage = std::next(itPage); itSuccessingPage != order.end(); ++itSuccessingPage)
-            {
-                if (currentPageSuccessors.find(*itSuccessingPage) == currentPageSuccessors.end())
-                {
-                    currentOk = false;
-                    break;
-                }
-            }
-            if (!currentOk)
-            {
-                break;
-            }
-        }
-        if (currentOk)
-        {
-            if (order.size() % 2 == 0)
-            {
-                int x = 5;
-            }
-            auto it = order.begin() + order.size()/2;
-            sumCorrect += *it;
-            std::cout << *it << std::endl;
-        }
-    }
-    std::cout << sumCorrect << std::endl;
+        return ArePagesOrdered(order, mapRules);
+    });
+
+    unsigned long long sumCorrect = std::transform_reduce(std::begin(orderedList), std::end(orderedList), 0ull, std::plus{}, [](const std::vector<unsigned int>& order)
+    {
+        auto itMiddle = order.begin() + order.size() / 2;
+        return *itMiddle;
+    });
+    std::println("{}", sumCorrect);
 
     // Part 2 - Sum up the middle values from incorrect orders after correcting them
-    unsigned long long sumIncorrect = 0;
-    for (const auto& order : orderList)
+    auto notOrderedList = orderList | std::views::filter([&mapRules](const std::vector<unsigned int>& order)
     {
-        bool currentOk = true;
-        for (auto itPage = order.begin(); itPage != order.end(); ++itPage)
-        {
-            const auto& currentPageSuccessors = mapRules[*itPage];
-            for (auto itSuccessingPage = std::next(itPage); itSuccessingPage != order.end(); ++itSuccessingPage)
-            {
-                if (currentPageSuccessors.find(*itSuccessingPage) == currentPageSuccessors.end())
-                {
-                    currentOk = false;
-                    break;
-                }
-            }
-            if (!currentOk)
-            {
-                break;
-            }
-        }
-        if (!currentOk)
-        {
-            auto orderCopy = order;
+        return !ArePagesOrdered(order, mapRules);
+    });
 
-            while (!currentOk)
-            {
-                currentOk = true;
-                for (auto itPage = orderCopy.begin(); itPage != orderCopy.end(); ++itPage)
-                {
-                    const auto& currentPageSuccessors = mapRules[*itPage];
-                    for (auto itSuccessingPage = std::next(itPage); itSuccessingPage != orderCopy.end(); ++itSuccessingPage)
-                    {
-                        if (currentPageSuccessors.find(*itSuccessingPage) == currentPageSuccessors.end())
-                        {
-                            currentOk = false;
-                            std::iter_swap(itPage, itSuccessingPage);
-                            break;
-                        }
-                    }
-                    if (!currentOk)
-                    {
-                        break;
-                    }
-                }
-            }
+    unsigned long long sumIncorrect = std::transform_reduce(std::begin(notOrderedList), std::end(notOrderedList), 0ull, std::plus{}, [&mapRules](const std::vector<unsigned int>& order)
+    {
+        auto orderCopy = order;
+        std::ranges::sort(orderCopy, [&mapRules](auto page1, auto page2)
+        {
+            const auto& currentPageSuccessors = mapRules[page1];
+            return currentPageSuccessors.find(page2) != currentPageSuccessors.end();
+        });
 
-            if (orderCopy.size() % 2 == 0)
-            {
-                int x = 5;
-            }
-            auto it = orderCopy.begin() + orderCopy.size() / 2;
-            sumIncorrect += *it;
-            std::cout << *it << std::endl;
-        }
-    }
-    std::cout << sumIncorrect << std::endl;
+        auto itMiddle = orderCopy.begin() + orderCopy.size() / 2;
+        return *itMiddle;
+    });
+
+    std::println("{}", sumIncorrect);
 }

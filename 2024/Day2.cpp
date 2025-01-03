@@ -36,13 +36,13 @@ void Day2()
     }
 
     auto correctPair = [](const auto& pair)
-        {
-            int result = std::abs(std::get<0>(pair) - std::get<1>(pair));
-            return result >= 1 && result <= 3;
-        };
+    {
+        int result = std::abs(std::get<0>(pair) - std::get<1>(pair));
+        return result >= 1 && result <= 3;
+    };
     auto correctReport = [correctPair](const auto& report)
         {
-            if (not std::ranges::is_sorted(report, std::less()) and not std::ranges::is_sorted(report, std::greater()))
+            if (!std::ranges::is_sorted(report, std::less()) && !std::ranges::is_sorted(report, std::greater()))
             {
                 return false;
             }

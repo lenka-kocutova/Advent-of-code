@@ -11,7 +11,6 @@
 #include <tuple>
 #include <map>
 #include <optional>
-#include <iostream>
 #include <numeric>
 #include <exception>
 #include <array>
@@ -28,7 +27,7 @@ void Day4()
         std::string line;
         while (std::getline(file, line))
         {
-            if (not matrixSize.has_value())
+            if (!matrixSize.has_value())
             {
                 matrixSize = line.size();
             }
@@ -39,87 +38,53 @@ void Day4()
             lines.emplace_back(line);
         }
     }
-    
-    // Count horizontal
-    std::cout << "Horizontal" << std::endl;
-    size_t counter = SubstringCounter(lines, xmas);
 
-    // Count reverse horizontal
-    std::cout << "Reverse horizontal" << std::endl;
-    std::vector<std::string> linesReverse = ReverseStrings(lines);
-    counter += SubstringCounter(linesReverse, xmas);
-
-    // Count vertical
-    std::cout << "Vertical" << std::endl;
-    std::vector<std::string> linesVertical(*matrixSize, "");
-    for (const auto& line : lines)
+    // Part 1 - Find all XMAS
+    size_t counter2 = 0;
+    for (size_t i = 0; i < *matrixSize; ++i)
     {
-        size_t index = 0;
-        for (char a : line)
+        for (size_t j = 0; j < *matrixSize; ++j)
         {
-            linesVertical[index++] += a;
+            if (lines[i][j] != 'X')
+            {
+                continue;
+            }
+
+            struct DirInfo
+            {
+                int stepX = 0;
+                int stepY = 0;
+                bool found = true;
+            };
+
+            std::array<DirInfo, 8> dirInfo = { DirInfo{ 1, 0}, DirInfo{-1, 0}, DirInfo{ 0, 1}, DirInfo{ 0,-1},
+                                               DirInfo{ 1, 1}, DirInfo{-1, 1}, DirInfo{ 1,-1}, DirInfo{-1,-1} };
+
+            for (auto [index, letter] : std::views::enumerate(std::vector{'M', 'A', 'S'}))
+            {
+                for (auto& dir : dirInfo)
+                {
+                    if (dir.found)
+                    {
+                        long long xCoord = i + dir.stepX*(index + 1);
+                        long long yCoord = j + dir.stepY*(index + 1);
+                        if(xCoord < 0 || xCoord >= *matrixSize || yCoord < 0 || yCoord >= *matrixSize)
+                        {
+                            dir.found = false;
+                            continue;
+                        }
+                        dir.found = (lines[xCoord][yCoord] == letter);
+                    }
+                }
+            }
+
+            counter2 += std::ranges::count_if(dirInfo, [](const auto& dir) {return dir.found; });
         }
     }
-    counter += SubstringCounter(linesVertical, xmas);
 
-    // Count reverse vertical
-    std::cout << "Reverse vertical" << std::endl;
-    std::vector<std::string> linesReverseVertical = ReverseStrings(linesVertical);
-    counter += SubstringCounter(linesReverseVertical, xmas);
+    std::println("Count of XMAS: {}", counter2);
 
-    // Count diagonal
-    std::cout << "Diagonal" << std::endl;
-    std::vector<std::string> linesDiagonal(2*(*matrixSize)-1, "");
-    for(size_t i = 0; i < 2 * (*matrixSize)-1 ; ++i)
-    {
-        for (size_t j = 0; j <= i; ++j)
-        {
-            if (j >= matrixSize || i - j >= matrixSize)
-            {
-                linesDiagonal[i] += " ";
-            }
-            else
-            {
-                linesDiagonal[i] += lines[j][i - j];
-            }
-        }
-    }
-    counter += SubstringCounter(linesDiagonal, xmas);
-
-    // Count reverse diagonal
-    std::cout << "Reverse diagonal" << std::endl;
-    std::vector<std::string> linesDiagonalReverse = ReverseStrings(linesDiagonal);
-    counter += SubstringCounter(linesDiagonalReverse, xmas);
-
-    // Count cross diagonal
-    std::cout << "Cross diagonal" << std::endl;
-    std::vector<std::string> linesCrossDiagonal(2 * (*matrixSize) - 1, "");
-    for (size_t i = 0; i < 2 * (*matrixSize) - 1; ++i)
-    {
-        for (size_t j = 0; j <= i; ++j)
-        {
-            if (j >= matrixSize || i - j >= matrixSize)
-            {
-                linesCrossDiagonal[i] += " ";
-            }
-            else
-            {
-                size_t index2 = *matrixSize - (i - j) - 1;
-                linesCrossDiagonal[i] += lines[j][index2];
-            }
-        }
-    }
-    counter += SubstringCounter(linesCrossDiagonal, xmas);
-
-    // Count cross reverse diagonal
-    std::cout << "Reverse cross diagonal" << std::endl;
-    std::vector<std::string> linesCrossDiagonalReverse = ReverseStrings(linesCrossDiagonal);
-    counter += SubstringCounter(linesCrossDiagonalReverse, xmas);
-
-    std::cout << counter << std::endl;
-
-    // Part 2 - find cross 
-
+    // Part 2 - find cross MAS
     size_t counter1 = 0;
     for (size_t i = 1; i < *matrixSize - 1; ++i)
     {
@@ -127,13 +92,10 @@ void Day4()
         {
             if (lines[i][j] == 'A')
             {
-                std::vector<std::vector<char>> neighbours{ { lines[i - 1][j - 1], lines[i - 1][j + 1] },
-                                                           { lines[i + 1][j - 1], lines[i + 1][j + 1]} };
-
-                if (((neighbours[0][0] == 'M' && neighbours[1][1] == 'S') ||
-                     (neighbours[0][0] == 'S' && neighbours[1][1] == 'M')) &&
-                    ((neighbours[0][1] == 'M' && neighbours[1][0] == 'S') ||
-                     (neighbours[0][1] == 'S' && neighbours[1][0] == 'M')))
+                if (((lines[i-1][j-1] == 'M' && lines[i+1][j+1] == 'S') ||
+                     (lines[i-1][j-1] == 'S' && lines[i+1][j+1] == 'M')) &&
+                    ((lines[i-1][j+1] == 'M' && lines[i+1][j-1] == 'S') ||
+                     (lines[i-1][j+1] == 'S' && lines[i+1][j-1] == 'M')))
                 {
                     counter1++;
                 }
@@ -141,5 +103,5 @@ void Day4()
         }
     }
 
-    std::cout << "Count of X-MAS: " << counter1 << std::endl;
+    std::println("Count of X-MAS: {}", counter1);
 }
